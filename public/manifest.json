@@ -1,0 +1,9 @@
+{
+  "name": "病史采集练习",
+  "short_name": "病史采集",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111118",
+  "theme_color": "#111118",
+  "description": "医学生病史采集语音练习 + AI 评价"
+}

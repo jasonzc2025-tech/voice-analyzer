@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>病史采集练习</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#111118">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #111118; --card: #1a1a24; --border: #2a2a36;
+      --text: #e0e0e0; --text2: #999; --accent: #FF5722;
+      --accent2: #FF6B35; --green: #4ECDC4; --red: #FF4757;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      font-family: 'Noto Sans SC', -apple-system, sans-serif;
+      padding: 16px; max-width: 500px; margin: 0 auto;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .header { text-align: center; padding: 20px 0 24px; }
+    .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .logo-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .logo h1 { font-size: 22px; font-weight: 700; color: var(--accent2); }
+    .subtitle { font-size: 13px; color: var(--text2); }
+
+    .card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); margin-bottom: 14px; }
+    .status-card { min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+    .big-mic { font-size: 48px; }
+    .status-text { font-size: 14px; color: var(--text2); text-align: center; }
+
+    /* 录音动画 */
+    .recording-pulse { width: 60px; height: 60px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 28px; animation: pulse 1.2s ease infinite; }
+    @keyframes pulse { 0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,87,34,0.4); } 50% { transform: scale(1.08); box-shadow: 0 0 0 16px rgba(255,87,34,0); } }
+
+    .timer { font-family: 'Courier New', monospace; font-size: 32px; font-weight: 600; letter-spacing: 3px; color: var(--text); }
+    .live-text { font-size: 13px; color: var(--green); max-height: 60px; overflow-y: auto; text-align: center; line-height: 1.6; padding: 0 10px; }
+    .recording-hint { color: var(--accent2); animation: blink 1.5s ease infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* 按钮 */
+    .btn { width: 100%; height: 50px; border-radius: 25px; border: none; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-stop { background: transparent; border: 2px solid var(--red); color: var(--red); }
+    .btn-secondary { background: var(--card); border: 1px solid var(--accent2); color: var(--accent2); margin-bottom: 14px; }
+    .btn-retry { background: var(--card); border: 1px solid var(--border); color: var(--text2); margin-bottom: 14px; }
+
+    /* 转圈 */
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 文本区 */
+    .section-label { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .section-label.green { color: var(--green); }
+    .section-label.orange { color: var(--accent2); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot.green { background: var(--green); }
+    .dot.orange { background: var(--accent2); }
+
+    .transcript { font-size: 15px; line-height: 1.8; color: #ccc; white-space: pre-wrap; }
+    .text-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .word-count { font-size: 12px; color: var(--text2); }
+    .edit-link { font-size: 12px; color: var(--green); cursor: pointer; }
+    .text-editor { width: 100%; min-height: 120px; background: #222230; border: 1px solid var(--green); border-radius: 10px; color: var(--text); font-size: 15px; line-height: 1.8; padding: 12px; font-family: inherit; resize: vertical; }
+
+    /* 结果 */
+    .result-card { background: linear-gradient(135deg, #161630, #1a1a2e); border-color: rgba(255,107,53,0.2); }
+    .result-text { font-size: 15px; line-height: 1.9; color: #ccc; white-space: pre-wrap; }
+
+    /* 追问 */
+    .followup-area { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); text-align: center; }
+    .followup-hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+    .followup-input { display: flex; gap: 10px; }
+    .followup-input input { flex: 1; height: 42px; background: #222230; border: 1px solid var(--border); border-radius: 21px; padding: 0 16px; color: var(--text); font-size: 14px; font-family: inherit; }
+    .followup-input input:focus { outline: none; border-color: var(--accent2); }
+    .btn-send { width: 70px; height: 42px; border-radius: 21px; background: var(--accent); color: #fff; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+    .chat-msg { margin-top: 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.7; }
+    .chat-q { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.2); color: #ddd; }
+    .chat-a { background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.15); color: #ccc; }
+    .chat-label { font-size: 11px; font-weight: 600; margin-bottom: 4px; display: block; }
+    .chat-label.q { color: var(--accent2); }
+    .chat-label.a { color: var(--green); }
+
+    /* 错误 & 提示 */
+    .error { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; color: #FF6B6B; }
+    .tips { text-align: center; padding: 20px 0; }
+    .tip { display: block; font-size: 13px; color: #666; line-height: 2.2; }
+    .manual-link { color: var(--accent2); font-size: 13px; margin-top: 12px; cursor: pointer; }
+
+    .exhausted { text-align: center; padding: 16px 0; font-size: 14px; color: var(--accent2); }
+
+    /* 底部导航 */
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; background: #111118; border-top: 1px solid var(--border); display: flex; }
+    .nav a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; font-size: 11px; color: var(--text2); gap: 2px; }
+    .nav a.active { color: var(--accent2); }
+    .nav-icon { font-size: 20px; }
+    body { padding-bottom: 72px; }
+
+    .hidden { display: none !important; }
+
+    /* 浏览器不支持提示 */
+    .browser-warn { background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 13px; color: #FFA500; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🩺</div>
+      <h1>病史采集练习</h1>
+    </div>
+    <div class="subtitle">点击录音 · AI 即时评价</div>
+  </div>
+
+  <div id="browserWarn" class="browser-warn hidden">
+    ⚠️ 当前浏览器不支持语音识别，请使用 <b>微信内置浏览器</b>、<b>Chrome</b> 或 <b>Safari</b> 打开此页面。
+  </div>
+
+  <!-- 状态卡片 -->
+  <div id="statusCard" class="card status-card">
+    <div class="big-mic">🎙</div>
+    <div class="status-text">点击下方按钮，开始模拟问诊</div>
+  </div>
+
+  <!-- 操作按钮 -->
+  <div id="btnArea" style="margin-bottom:14px;">
+    <button id="btnStart" class="btn btn-primary" onclick="startRecord()">🎙 点击开始录音</button>
+    <button id="btnStop" class="btn btn-stop hidden" onclick="stopRecord()">⬛ 停止录音</button>
+  </div>
+
+  <!-- 识别文本 -->
+  <div id="transcriptCard" class="card hidden">
+    <div class="section-label green"><span class="dot green"></span> 你的病史采集内容</div>
+    <div id="transcriptDisplay" class="transcript"></div>
+    <textarea id="transcriptEditor" class="text-editor hidden" oninput="onEdit(this)"></textarea>
+    <div class="text-footer">
+      <span id="wordCount" class="word-count"></span>
+      <span id="editLink" class="edit-link" onclick="toggleEdit()">编辑</span>
+    </div>
+  </div>
+
+  <!-- 分析按钮 -->
+  <button id="btnAnalyze" class="btn btn-secondary hidden" onclick="doAnalyze()">✦ 开始 AI 分析</button>
+
+  <!-- AI 结果 -->
+  <div id="resultCard" class="card result-card hidden">
+    <div class="section-label orange"><span class="dot orange"></span> AI 评价与建议</div>
+    <div id="resultText" class="result-text"></div>
+
+    <div id="followupArea" class="followup-area">
+      <div id="followupHint" class="followup-hint"></div>
+      <div id="chatHistory"></div>
+      <div id="followupInput" class="followup-input">
+        <input id="questionInput" placeholder="输入你的问题…" onkeydown="if(event.key==='Enter')sendFollowup()">
+        <button class="btn-send" onclick="sendFollowup()">发送</button>
+      </div>
+      <div id="exhausted" class="exhausted hidden">追问次数已用完，已通知老师</div>
+    </div>
+  </div>
+
+  <button id="btnRetry" class="btn btn-retry hidden" onclick="resetAll()">🔄 重新练习</button>
+
+  <!-- 错误提示 -->
+  <div id="errorBar" class="error hidden"></div>
+
+  <!-- 提示 -->
+  <div id="tipsArea" class="tips">
+    <span class="tip">💡 点击录音后开始模拟问诊，文字实时显示</span>
+    <span class="tip">🤖 AI 从完整性、逻辑性、专业性等维度评价</span>
+    <span class="tip">❓ 收到反馈后可追问 5 次，超出将通知老师</span>
+    <div class="manual-link" onclick="startManualInput()">手动输入文本 ›</div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="nav">
+    <a href="/" class="active"><span class="nav-icon">🎙</span>开始练习</a>
+    <a href="/teacher.html"><span class="nav-icon">📋</span>教师后台</a>
+  </div>
+
+  <script>
+    // ========== 全局状态 ==========
+    let recognition = null
+    let transcript = ''
+    let recordId = ''
+    let followUpCount = 0
+    const MAX_FOLLOWUPS = 5
+    let timerInterval = null
+    let seconds = 0
+    let isEditing = false
+    let userId = localStorage.getItem('userId') || ('u_' + Math.random().toString(36).substr(2, 9))
+    localStorage.setItem('userId', userId)
+
+    // ========== 检查浏览器支持 ==========
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      document.getElementById('browserWarn').classList.remove('hidden')
+    }
+
+    // ========== 录音 ==========
+    function startRecord() {
+      if (!SpeechRecognition) {
+        showError('浏览器不支持语音识别，请使用 Chrome 或微信内置浏览器')
+        return
+      }
+
+      hideError()
+      transcript = ''
+      recordId = ''
+      followUpCount = 0
+
+      recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = 'zh-CN'
+
+      let finalText = ''
+
+      recognition.onresult = function(e) {
+        let interim = ''
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) {
+            finalText += e.results[i][0].transcript
+          } else {
+            interim += e.results[i][0].transcript
+          }
+        }
+        transcript = finalText + interim
+        updateStatusRecording(transcript)
+      }
+
+      recognition.onerror = function(e) {
+        console.error('识别错误:', e.error)
+        if (e.error === 'not-allowed') {
+          showError('麦克风权限被拒绝，请在浏览器设置中允许')
+        }
+      }
+
+      recognition.onend = function() {
+        // 如果还在录音状态，可能是中断了，自动重启
+        if (document.getElementById('btnStop').classList.contains('hidden') === false) {
+          try { recognition.start() } catch(e) {}
+        }
+      }
+
+      recognition.start()
+
+      // UI 切换
+      document.getElementById('btnStart').classList.add('hidden')
+      document.getElementById('btnStop').classList.remove('hidden')
+      document.getElementById('tipsArea').classList.add('hidden')
+      document.getElementById('transcriptCard').classList.add('hidden')
+      document.getElementById('resultCard').classList.add('hidden')
+      document.getElementById('btnAnalyze').classList.add('hidden')
+      document.getElementById('btnRetry').classList.add('hidden')
+
+      seconds = 0
+      updateStatusRecording('')
+      timerInterval = setInterval(() => {
+        seconds++
+        updateTimer()
+      }, 1000)
+    }
+
+    function stopRecord() {
+      if (recognition) {
+        recognition.onend = null
+        recognition.stop()
+        recognition = null
+      }
+      clearInterval(timerInterval)
+
+      document.getElementById('btnStart').classList.remove('hidden')
+      document.getElementById('btnStop').classList.add('hidden')
+
+      if (transcript && transcript.trim()) {
+        showTranscript(transcript.trim())
+      } else {
+        showIdle()
+        showError('未识别到内容，请重试')
+      }
+    }
+
+    function updateStatusRecording(text) {
+      const timerStr = formatTime(seconds)
+      let html = '<div class="recording-pulse">🎙</div>'
+      html += '<div class="timer">' + timerStr + '</div>'
+      if (text) html += '<div class="live-text">' + escapeHtml(text.slice(-100)) + '</div>'
+      html += '<div class="status-text recording-hint">正在录音识别中…</div>'
+      document.getElementById('statusCard').innerHTML = html
+    }
+
+    function updateTimer() {
+      const el = document.querySelector('.timer')
+      if (el) el.textContent = formatTime(seconds)
+    }
+
+    function formatTime(s) {
+      return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0')
+    }
+
+    // ========== 显示状态 ==========
+    function showIdle() {
+      document.getElementById('statusCard').innerHTML = '<div class="big-mic">🎙</div><div class="status-text">点击下方按钮，开始模拟问诊</div>'
+      document.getElementById('tipsArea').classList.remove('hidden')
+    }
+
+    function showTranscript(text) {
+      transcript = text
+      document.getElementById('statusCard').innerHTML = '<div class="big-mic">✅</div><div class="status-text">录音完成，' + text.length + ' 字</div>'
+      document.getElementById('transcriptCard').classList.remove('hidden')
+      document.getElementById('transcriptDisplay').textContent = text
+      document.getElementById('transcriptDisplay').classList.remove('hidden')
+      document.getElementById('transcriptEditor').classList.add('hidden')
+      document.getElementById('wordCount').textContent = '共 ' + text.length + ' 字 · 录音 ' + formatTime(seconds)
+      document.getElementById('editLink').textContent = '编辑'
+      document.getElementById('btnAnalyze').classList.remove('hidden')
+      isEditing = false
+    }
+
+    function showLoading(msg) {
+      document.getElementById('statusCard').innerHTML = '<div class="spinner"></div><div class="status-text">' + msg + '</div>'
+    }
+
+    // ========== 编辑 ==========
+    function toggleEdit() {
+      if (isEditing) {
+        transcript = document.getElementById('transcriptEditor').value
+        showTranscript(transcript)
+      } else {
+        isEditing = true
+        document.getElementById('transcriptDisplay').classList.add('hidden')
+        document.getElementById('transcriptEditor').classList.remove('hidden')
+        document.getElementById('transcriptEditor').value = transcript
+        document.getElementById('editLink').textContent = '完成'
+      }
+    }
+
+    function onEdit(el) {
+      transcript = el.value
+      document.getElementById('wordCount').textContent = '共 ' + transcript.length + ' 字'
+    }
+
+    function startManualInput() {
+      document.getElementById('tipsArea').classList.add('hidden')
+      document.getElementById('transcriptCard').classList.remove('hidden')
+      document.getElementById('transcriptDisplay').classList.add('hidden')
+      document.getElementById('transcriptEditor').classList.remove('hidden')
+      document.getElementById('transcriptEditor').value = ''
+      document.getElementById('transcriptEditor').placeholder = '在此输入你的病史采集内容…'
+      document.getElementById('editLink').textContent = '完成'
+      document.getElementById('btnAnalyze').classList.remove('hidden')
+      document.getElementById('statusCard').innerHTML = '<div class="big-mic">✏️</div><div class="status-text">手动输入模式</div>'
+      isEditing = true
+    }
+
+    // ========== AI 分析 ==========
+    async function doAnalyze() {
+      if (isEditing) {
+        transcript = document.getElementById('transcriptEditor').value
+      }
+      if (!transcript || !transcript.trim()) {
+        showError('请先录音或输入文本')
+        return
+      }
+
+      hideError()
+      showLoading('AI 正在分析你的病史采集…')
+      document.getElementById('btnAnalyze').classList.add('hidden')
+      document.getElementById('btnStart').classList.add('hidden')
+      document.getElementById('transcriptCard').classList.add('hidden')
+
+      try {
+        const res = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: transcript.trim(), duration: seconds, userId })
+        })
+        const data = await res.json()
+
+        if (data.success) {
+          recordId = data.recordId
+          followUpCount = 0
+          document.getElementById('statusCard').innerHTML = '<div class="big-mic">🩺</div><div class="status-text">分析完成</div>'
+          document.getElementById('resultText').textContent = data.analysis
+          document.getElementById('resultCard').classList.remove('hidden')
+          document.getElementById('btnRetry').classList.remove('hidden')
+          document.getElementById('chatHistory').innerHTML = ''
+          updateFollowupHint()
+        } else {
+          showIdle()
+          document.getElementById('transcriptCard').classList.remove('hidden')
+          document.getElementById('btnAnalyze').classList.remove('hidden')
+          document.getElementById('btnStart').classList.remove('hidden')
+          showError('分析失败: ' + (data.error || '未知错误'))
+        }
+      } catch (e) {
+        showIdle()
+        document.getElementById('transcriptCard').classList.remove('hidden')
+        document.getElementById('btnAnalyze').classList.remove('hidden')
+        document.getElementById('btnStart').classList.remove('hidden')
+        showError('网络错误，请重试')
+      }
+    }
+
+    // ========== 追问 ==========
+    function updateFollowupHint() {
+      const remaining = MAX_FOLLOWUPS - followUpCount
+      document.getElementById('followupHint').textContent = '对反馈有疑问？可追问（剩余 ' + remaining + ' 次）'
+      if (remaining <= 0) {
+        document.getElementById('followupInput').classList.add('hidden')
+        document.getElementById('exhausted').classList.remove('hidden')
+      } else {
+        document.getElementById('followupInput').classList.remove('hidden')
+        document.getElementById('exhausted').classList.add('hidden')
+      }
+    }
+
+    async function sendFollowup() {
+      const input = document.getElementById('questionInput')
+      const question = input.value.trim()
+      if (!question || followUpCount >= MAX_FOLLOWUPS) return
+
+      followUpCount++
+      input.value = ''
+      updateFollowupHint()
+
+      // 显示用户问题
+      const chatEl = document.getElementById('chatHistory')
+      chatEl.innerHTML += '<div class="chat-msg chat-q"><span class="chat-label q">你的追问</span>' + escapeHtml(question) + '</div>'
+      chatEl.innerHTML += '<div class="chat-msg chat-a" id="loading-reply"><span class="chat-label a">AI 回复</span>思考中…</div>'
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recordId, question, followUpCount, userId })
+        })
+        const data = await res.json()
+        document.getElementById('loading-reply').remove()
+
+        if (data.success) {
+          chatEl.innerHTML += '<div class="chat-msg chat-a"><span class="chat-label a">AI 回复</span>' + escapeHtml(data.reply) + '</div>'
+        } else {
+          chatEl.innerHTML += '<div class="chat-msg chat-a"><span class="chat-label a">AI 回复</span>回复失败，请重试</div>'
+          followUpCount--
+          updateFollowupHint()
+        }
+      } catch (e) {
+        document.getElementById('loading-reply').remove()
+        chatEl.innerHTML += '<div class="chat-msg chat-a"><span class="chat-label a">AI 回复</span>网络错误</div>'
+        followUpCount--
+        updateFollowupHint()
+      }
+    }
+
+    // ========== 工具 ==========
+    function resetAll() {
+      transcript = ''; recordId = ''; followUpCount = 0; seconds = 0;
+      showIdle()
+      document.getElementById('transcriptCard').classList.add('hidden')
+      document.getElementById('resultCard').classList.add('hidden')
+      document.getElementById('btnAnalyze').classList.add('hidden')
+      document.getElementById('btnRetry').classList.add('hidden')
+      document.getElementById('btnStart').classList.remove('hidden')
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBar')
+      el.textContent = '⚠️ ' + msg
+      el.classList.remove('hidden')
+    }
+    function hideError() {
+      document.getElementById('errorBar').classList.add('hidden')
+    }
+    function escapeHtml(t) {
+      return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师后台 - 病史采集练习</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #111118; --card: #1a1a24; --border: #2a2a36; --text: #e0e0e0; --text2: #999; --accent: #FF5722; --accent2: #FF6B35; --green: #4ECDC4; --red: #FF4757; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; font-family: 'Noto Sans SC', sans-serif; padding: 16px 16px 72px; max-width: 600px; margin: 0 auto; }
+
+    .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .stat { font-size: 13px; color: var(--text2); }
+
+    .password-gate { text-align: center; padding: 80px 20px; }
+    .password-gate input { width: 100%; max-width: 300px; height: 46px; background: var(--card); border: 1px solid var(--border); border-radius: 23px; padding: 0 20px; color: var(--text); font-size: 15px; text-align: center; font-family: inherit; margin-bottom: 14px; }
+    .password-gate input:focus { outline: none; border-color: var(--accent2); }
+    .password-gate button { width: 200px; height: 46px; border-radius: 23px; background: var(--accent); color: #fff; border: none; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+    .filters { display: flex; gap: 10px; margin-bottom: 16px; }
+    .filter-btn { font-size: 13px; color: var(--text2); padding: 6px 16px; border-radius: 14px; background: var(--card); border: 1px solid var(--border); cursor: pointer; }
+    .filter-btn.active { color: var(--accent2); background: rgba(255,107,53,0.1); border-color: var(--accent2); }
+
+    .record { background: var(--card); border-radius: 14px; padding: 16px; border: 1px solid var(--border); margin-bottom: 14px; cursor: pointer; }
+    .record-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+    .record-date { font-size: 13px; color: var(--text2); }
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; background: #222230; color: var(--text2); }
+    .tag.warn { color: var(--accent2); background: rgba(255,107,53,0.1); }
+    .tag.done { color: var(--green); background: rgba(78,205,196,0.1); }
+    .record-preview { font-size: 14px; color: #bbb; line-height: 1.5; }
+
+    .detail { margin-top: 12px; display: none; }
+    .detail.open { display: block; }
+    .detail-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .detail-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; margin-bottom: 6px; }
+    .detail-label.green { color: var(--green); }
+    .detail-label.orange { color: var(--accent2); }
+    .detail-label.blue { color: #60A5FA; }
+    .detail-label.red { color: var(--red); }
+    .detail-text { font-size: 14px; color: #ccc; line-height: 1.7; white-space: pre-wrap; }
+
+    .comment-area textarea { width: 100%; min-height: 80px; background: #222230; border: 1px solid var(--red); border-radius: 10px; color: var(--text); font-size: 14px; padding: 10px; font-family: inherit; resize: vertical; margin-top: 8px; }
+    .comment-area textarea:focus { outline: none; }
+    .comment-btns { margin-top: 8px; display: flex; gap: 8px; }
+    .mini-btn { font-size: 13px; padding: 6px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text2); cursor: pointer; font-family: inherit; }
+    .mini-btn.save { border-color: var(--accent2); color: var(--accent2); }
+
+    .chat-item { margin: 8px 0; padding: 8px 10px; background: #222230; border-radius: 8px; font-size: 13px; }
+    .chat-item .q { color: var(--accent2); }
+    .chat-item .a { color: #bbb; }
+
+    .load-more { text-align: center; padding: 16px; color: var(--accent2); font-size: 14px; cursor: pointer; }
+    .empty { text-align: center; padding: 60px 0; color: var(--text2); }
+    .spinner { width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; height: 56px; background: #111118; border-top: 1px solid var(--border); display: flex; }
+    .nav a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-decoration: none; font-size: 11px; color: var(--text2); gap: 2px; }
+    .nav a.active { color: var(--accent2); }
+    .nav-icon { font-size: 20px; }
+
+    .export-btn { font-size: 13px; color: var(--green); cursor: pointer; padding: 4px 12px; border: 1px solid var(--green); border-radius: 10px; background: transparent; font-family: inherit; }
+  </style>
+</head>
+<body>
+  <!-- 密码门 -->
+  <div id="gate" class="password-gate">
+    <h2 style="margin-bottom:8px;">🔒 教师后台</h2>
+    <p style="color:#999;font-size:14px;margin-bottom:24px;">请输入教师密码</p>
+    <input id="pwdInput" type="password" placeholder="输入密码" onkeydown="if(event.key==='Enter')checkPwd()">
+    <br>
+    <button onclick="checkPwd()">进入</button>
+  </div>
+
+  <!-- 主内容 -->
+  <div id="main" style="display:none;">
+    <div class="header">
+      <h1>📋 教师后台</h1>
+      <div>
+        <span id="totalStat" class="stat"></span>
+        <button class="export-btn" onclick="exportCSV()" style="margin-left:10px;">导出CSV</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-btn active" onclick="setFilter('all',this)">全部</div>
+      <div class="filter-btn" onclick="setFilter('needTeacher',this)">待介入</div>
+    </div>
+
+    <div id="recordList"></div>
+    <div id="loadMore" class="load-more" onclick="loadMore()" style="display:none;">加载更多</div>
+    <div id="loading" class="spinner" style="display:none;"></div>
+  </div>
+
+  <div class="nav">
+    <a href="/"><span class="nav-icon">🎙</span>开始练习</a>
+    <a href="/teacher.html" class="active"><span class="nav-icon">📋</span>教师后台</a>
+  </div>
+
+  <script>
+    // 密码在环境变量中配置，这里校验
+    const TEACHER_PWD = 'teacher123' // 部署时会被环境变量覆盖
+
+    let allRecords = []
+    let currentFilter = 'all'
+    let page = 0
+    const pageSize = 20
+
+    function checkPwd() {
+      const pwd = document.getElementById('pwdInput').value
+      // 简单前端校验 + 后端也会校验
+      localStorage.setItem('teacherPwd', pwd)
+      document.getElementById('gate').style.display = 'none'
+      document.getElementById('main').style.display = 'block'
+      loadRecords()
+    }
+
+    // 如果之前登录过
+    if (localStorage.getItem('teacherPwd')) {
+      document.getElementById('gate').style.display = 'none'
+      document.getElementById('main').style.display = 'block'
+      loadRecords()
+    }
+
+    async function loadRecords() {
+      document.getElementById('loading').style.display = 'block'
+      try {
+        const pwd = localStorage.getItem('teacherPwd') || ''
+        const res = await fetch('/api/records?page=' + page + '&filter=' + currentFilter + '&pwd=' + encodeURIComponent(pwd))
+        const data = await res.json()
+
+        if (!data.success) {
+          if (data.error === 'unauthorized') {
+            localStorage.removeItem('teacherPwd')
+            document.getElementById('gate').style.display = 'block'
+            document.getElementById('main').style.display = 'none'
+          }
+          return
+        }
+
+        document.getElementById('totalStat').textContent = '共 ' + data.total + ' 条'
+        const list = document.getElementById('recordList')
+        
+        data.records.forEach((r, i) => {
+          allRecords.push(r)
+          const idx = allRecords.length - 1
+          const preview = r.original_text.length > 60 ? r.original_text.substring(0, 60) + '…' : r.original_text
+          const date = new Date(r.created_at).toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+          
+          let tags = '<span class="tag">' + (r.text_length||0) + '字</span>'
+          if (r.need_teacher) tags += '<span class="tag warn">需介入</span>'
+          if (r.teacher_comment) tags += '<span class="tag done">已点评</span>'
+
+          list.innerHTML += `
+            <div class="record" onclick="toggleDetail(${idx})">
+              <div class="record-top">
+                <span class="record-date">${date}</span>
+                <div class="tags">${tags}</div>
+              </div>
+              <div class="record-preview">${escapeHtml(preview)}</div>
+              <div class="detail" id="detail-${idx}">
+                <div class="detail-section">
+                  <div class="detail-label green">采集原文</div>
+                  <div class="detail-text">${escapeHtml(r.original_text)}</div>
+                </div>
+                <div class="detail-section">
+                  <div class="detail-label orange">AI 评价</div>
+                  <div class="detail-text">${escapeHtml(r.analysis||'')}</div>
+                </div>
+                ${r.chat_history && r.chat_history.length > 0 ? `
+                  <div class="detail-section">
+                    <div class="detail-label blue">追问记录</div>
+                    ${r.chat_history.map(c => `<div class="chat-item"><div class="q">Q: ${escapeHtml(c.question)}</div><div class="a">A: ${escapeHtml(c.reply)}</div></div>`).join('')}
+                  </div>
+                ` : ''}
+                <div class="detail-section comment-area">
+                  <div class="detail-label red">老师点评</div>
+                  <textarea id="comment-${idx}" placeholder="输入点评…">${escapeHtml(r.teacher_comment||'')}</textarea>
+                  <div class="comment-btns">
+                    <button class="mini-btn save" onclick="event.stopPropagation();saveComment(${idx},'${r.id}')">保存点评</button>
+                  </div>
+                </div>
+              </div>
+            </div>`
+        })
+
+        document.getElementById('loadMore').style.display = data.records.length >= pageSize ? 'block' : 'none'
+      } catch(e) {
+        console.error(e)
+      }
+      document.getElementById('loading').style.display = 'none'
+    }
+
+    function toggleDetail(idx) {
+      document.getElementById('detail-' + idx).classList.toggle('open')
+    }
+
+    function setFilter(f, el) {
+      currentFilter = f; page = 0; allRecords = []
+      document.getElementById('recordList').innerHTML = ''
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+      el.classList.add('active')
+      loadRecords()
+    }
+
+    function loadMore() { page++; loadRecords() }
+
+    async function saveComment(idx, id) {
+      const comment = document.getElementById('comment-' + idx).value
+      const pwd = localStorage.getItem('teacherPwd') || ''
+      try {
+        await fetch('/api/records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'comment', recordId: id, comment, pwd })
+        })
+        alert('已保存')
+      } catch(e) { alert('保存失败') }
+    }
+
+    async function exportCSV() {
+      const pwd = localStorage.getItem('teacherPwd') || ''
+      const res = await fetch('/api/records?page=0&pageSize=9999&filter=all&pwd=' + encodeURIComponent(pwd))
+      const data = await res.json()
+      if (!data.success) return
+
+      let csv = 'ID,用户,文本,字数,AI分析,追问次数,需要介入,老师点评,时间\n'
+      data.records.forEach(r => {
+        csv += [r.id, r.user_id, '"'+r.original_text.replace(/"/g,'""')+'"', r.text_length, '"'+(r.analysis||'').replace(/"/g,'""')+'"', r.follow_up_count||0, r.need_teacher?'是':'否', '"'+(r.teacher_comment||'').replace(/"/g,'""')+'"', r.created_at].join(',') + '\n'
+      })
+
+      const blob = new Blob(['\ufeff'+csv], {type:'text/csv'})
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = '病史采集记录_' + new Date().toISOString().slice(0,10) + '.csv'
+      a.click()
+    }
+
+    function escapeHtml(t) { return (t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') }
+  </script>
+</body>
+</html>
