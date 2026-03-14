@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/analyze.js": { "maxDuration": 60 },
+    "api/chat.js": { "maxDuration": 60 },
+    "api/records.js": { "maxDuration": 10 }
+  }
+}
